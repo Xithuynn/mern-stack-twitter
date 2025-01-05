@@ -1,10 +1,10 @@
 import User from "../models/userModel.js"
 import bcrypt from "bcryptjs"
-
+import { generateTokenAndSetCoookie } from "../lib/utils/generateTokenAndSetCookie.js"
 
 export const signup = async (req , res ) => {
     try{
-        const {username, fullname, email, password} = req.body
+        const {fullname, username, email, password} = req.body //express.json !!!
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -21,6 +21,9 @@ export const signup = async (req , res ) => {
 
         if(usedEmail) {
             return res.status(400).json({ error: " email is already taken "  })
+        }
+        if( password.length < 6) {
+            return res.status(400).json({ error: " Password must be at least 6 words" })
         }
         //hash password 
 
@@ -54,18 +57,59 @@ export const signup = async (req , res ) => {
 
 
     } catch(error){
-
+        console.log("Error in Create Product", error.message)
+        res.status(500).json({success:false, message: "server Error"})
+        
     }
 }
 
-export const login = (req , res ) => {
-    res.json({
-        data: "you hit the login endpoint"
-    })
+export const login = async (req , res ) => {
+    try{
+            const { username, password } = req.body;
+            
+            const user = await User.findOne({ username})
+            const isPasswordCorrect = await bcrypt.compare(password, user?.password || "")
+            if( !user || !isPasswordCorrect) {
+                return res.status(400).json({error: "username or password is incorrect"})
+            }
+            generateTokenAndSetCoookie(user._id, res)
+            res.status(201).json({
+                _id: user._id,
+                fullname: user.fullname,
+                username: user.username,
+                email: user.email,
+                followers: user.followers,
+                following: user.following,
+                profileImg: user.profileImg,
+                coverImg: user.coverImg
+            })
+
+    } catch( error ) {
+        console.log("auth controller error")
+        res.status(500).json({ success: false, error: "Internal server failed"})
+    }
 }
 
 export const logout = (req , res ) => {
-    res.json({
-        data: "you hit the logout endpoint"
-    })
+    try{
+        res.cookie("jwt","", { maxAge: 0})
+        res.status(200).json({ message: "logout successfully" })
+    }
+    catch( error ) {
+        console.log("auth controller error")
+        res.status(500).json({ success: false, error: "Internal server failed"})
+    }
+}
+
+export const getMe = async ( req, res) => {
+    try{
+        const user = await User.findById(req.user._id).select("-password")
+       
+        res.status(200).json(user)
+    }
+    catch(error) {
+        console.log("Error in protectRoute middleware", err.message)
+        res.status(500).json({ success: false, error: "Internal server failed"})
+  
+    }
 }
