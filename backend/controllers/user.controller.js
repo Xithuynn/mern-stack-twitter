@@ -1,5 +1,5 @@
 import User from "../models/userModel.js";
-
+import Notification from "../models/notificationModel.js";
 
 export const getUserProfile = async (req, res) => {
     const { username } = req.params;
@@ -25,7 +25,7 @@ export const followUnfollowUser = async (req, res) => {
         const userToModify = await User.findById(id); //UsertobeFollowed
         const currentUser = await User.findById(req.user._id) //Doer
 
-        if( id === req.user._id) {
+        if( id === req.user._id.toString()) {
             return res.status(400).json({ error: "You can't follow yourself"})
         }
 
@@ -43,7 +43,16 @@ export const followUnfollowUser = async (req, res) => {
         else {
             await User.findByIdAndUpdate(id,{$push: { followers: req.user._id }} )
             await User.findByIdAndUpdate(req.user._id,{ $push: { following: id }} )
-            res.status(200).json({ message: "User UnFollowed successfully" })
+
+            const getNotification = new Notification({
+                from: req.user._id,
+                to: userToModify._id,
+                type: "follow"
+            })
+
+            await getNotification.save();
+
+            res.status(200).json({ message: "User Followed successfully" })
 
        
         }
