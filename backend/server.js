@@ -2,6 +2,7 @@ import express from "express"
 
 import authRouter from "./routes/auth.routes.js"
 import userRouter from "./routes/user.routes.js"
+import postRouter from "./routes/post.routes.js"
 
 import { connectDB } from "./config/db.js";
 import dotenv  from "dotenv"
@@ -31,6 +32,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/auth", authRouter)
 app.use("/api/user", userRouter)
+app.use("/api/post", postRouter)
 
 
 app.listen(PORT,()=> {
